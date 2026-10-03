@@ -1,0 +1,7 @@
+node_modules/
+.env
+*.log
+# Local state, only at the project root (src/data/ holds the place catalog and must be committed)
+/data/
+/bin/
+/logs/

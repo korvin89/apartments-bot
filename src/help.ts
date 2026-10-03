@@ -1,0 +1,23 @@
+/** What the bot does: /help, /start, and the first message on the first run. */
+export const HELP_TEXT = [
+  '🏠 <b>Belgrade home finder</b>',
+  '',
+  'Every few minutes I check 4zida.rs, nekretnine.rs, halooglasi.com and cityexpert.rs for apartments and houses for sale, and post the ones that match our filters here.',
+  '',
+  '<b>Cards</b>',
+  'New listings and price drops (📉) on things we have seen. When the same flat is on several sites, I usually post it once.',
+  '👍 Like: keep it, see it in /liked.',
+  '👎 Dislike: the card disappears and I never mention it again.',
+  'On the first run, when a site is added, or when filters widen, I post one overview of what already matches instead of a pile of cards.',
+  '',
+  '<b>Commands</b>',
+  '/filters — price, area, rooms, apartments/houses, resale/new builds, floors, registration, places. Anyone here can change them.',
+  '/liked — liked listings, with Unlike / Dislike buttons.',
+  '/disliked — disliked listings, in case one was removed by mistake.',
+  '/poll — check the sites right now instead of waiting.',
+  '/status — what reached the chat and whether each site works.',
+  '',
+  '<b>Good to know</b>',
+  '• If a listing lacks a detail (say, the floor), filters on that detail let it through.',
+  '• If a site stops working for about 30 minutes, I post a warning here, and again when it recovers.',
+].join('\n');

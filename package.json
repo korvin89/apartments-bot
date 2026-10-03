@@ -1,0 +1,34 @@
+{
+  "name": "apartments-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.30.3",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "poll": "tsx src/cli.ts poll",
+    "preview": "tsx src/cli.ts fetch",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test",
+    "test": "LOG_DIR=/tmp/apartments-bot-test-logs node --import tsx --test --test-reporter=spec test/*.test.ts"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "dotenv": "^18.0.5",
+    "grammy": "^1.46.0",
+    "tsx": "^4.23.15"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.6.4",
+    "typescript": "^7.0.2"
+  },
+  "pnpm": {
+    "ignoredBuiltDependencies": [
+      "better-sqlite3"
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+# systemd unit for the bot. Install:
+#   sudo cp deploy/apartments-bot.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now apartments-bot
+# Adjust User and WorkingDirectory if the checkout lives elsewhere.
+[Unit]
+Description=Belgrade apartments Telegram bot
+Wants=network-online.target
+After=network-online.target
+# Don't restart-loop forever on a hard failure: give up after 10 starts in 10 minutes
+StartLimitIntervalSec=600
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=alaev89
+WorkingDirectory=/home/alaev89/apartments-bot
+# .env in WorkingDirectory is read by the bot itself (dotenv).
+# Node must be on systemd's PATH (/usr/bin or /usr/local/bin), e.g. installed from NodeSource, not nvm.
+ExecStart=/usr/bin/env node --import tsx src/index.ts
+Restart=always
+RestartSec=30
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
