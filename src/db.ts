@@ -250,6 +250,24 @@ export class ListingsDb {
     return rows.map(rowToListing);
   }
 
+  /** Unrated listings shown only in an overview (no card of their own), still seen on a site since `since`. */
+  overviewOnly(since: string): StoredListing[] {
+    const rows = this.db
+      .prepare(
+        "SELECT * FROM listings WHERE notified_at IS NOT NULL AND tg_message_id IS NULL AND status = 'new' AND last_seen_at >= ? ORDER BY id",
+      )
+      .all(since) as Row[];
+    return rows.map(rowToListing);
+  }
+
+  /** Records a card sent on request (/c<id>); a listing that already has a card keeps both. */
+  attachCard(id: number, messageId: number): void {
+    const l = this.get(id);
+    if (!l) return;
+    if (l.tgMessageId === null) this.db.prepare('UPDATE listings SET tg_message_id = ? WHERE id = ?').run(messageId, id);
+    else this.addExtraMessage(id, messageId);
+  }
+
   /** Some listing with this fingerprint has already been shown. */
   fingerprintShown(fingerprint: string): boolean {
     return this.db.prepare('SELECT 1 FROM listings WHERE fingerprint = ? AND notified_at IS NOT NULL LIMIT 1').get(fingerprint) !== undefined;

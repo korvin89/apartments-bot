@@ -1,6 +1,8 @@
 import { Bot, GrammyError, InlineKeyboard, type CommandContext, type Context } from 'grammy';
 import type { ListingsDb } from './db.js';
-import { esc, fmtWhen, formatCard, formatShort, statusLabel } from './format.js';
+import { esc, fmtWhen, formatCard, formatDigest, formatShort, statusLabel } from './format.js';
+import { rejectReason } from './filters.js';
+import { loadSearchConfig } from './settings.js';
 import { SOURCE_STATS_KEY } from './poll.js';
 import { HELP_TEXT } from './help.js';
 import type { ListingEvent, ListingStatus, StoredListing } from './types.js';
@@ -38,6 +40,9 @@ const LEGACY_ACTION: Record<string, ListingStatus> = {
   contacted: 'liked',
   hidden: 'disliked',
 };
+
+/** /overview lists listings seen on a site this recently, i.e. probably still for sale. */
+const OVERVIEW_WINDOW_MS = 3 * 86_400_000;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -144,6 +149,7 @@ export class TelegramNotifier implements Notifier {
 /** Shown in the Telegram command menu; registered on startup. */
 export const BOT_COMMANDS = [
   { command: 'filters', description: 'View and change search filters' },
+  { command: 'overview', description: 'Re-send the overview of listings without a card' },
   { command: 'liked', description: 'Listings we liked' },
   { command: 'disliked', description: 'Listings we disliked' },
   { command: 'poll', description: 'Check the sites now' },
@@ -333,6 +339,29 @@ export function createBot(token: string, deps: BotDeps): Bot {
       warn(`editMessageReplyMarkup: ${(e as Error).message}`);
     }
     await ctx.answerCallbackQuery(next === 'new' ? 'Cleared' : `${statusLabel(next)} (${who})`);
+  });
+
+  // /c<id> from an overview line: post that listing's card with Like / Dislike
+  bot.hears(/^\/c(\d+)(?:@\w+)?$/, async (ctx) => {
+    const l = deps.db.get(Number(ctx.match[1]));
+    if (!l) return ctx.reply('Listing not found.');
+    const target = deps.chat.isSet ? deps.chat : new ChatTarget(deps.db, String(ctx.chat.id));
+    const msgId = await new TelegramNotifier(bot, target).send({ kind: 'new', listing: l });
+    if (msgId) deps.db.attachCard(l.id, msgId);
+    // Keep the chat clean; needs the bot to be a group admin with "Delete messages"
+    await ctx.deleteMessage().catch((e) => warn(`delete /c command: ${(e as Error).message}`));
+  });
+
+  bot.command('overview', async (ctx) => {
+    const cfg = loadSearchConfig(deps.db);
+    const since = new Date(Date.now() - OVERVIEW_WINDOW_MS).toISOString();
+    const items = deps.db.overviewOnly(since).filter((l) => !rejectReason(l, cfg));
+    if (items.length === 0) return ctx.reply('Nothing to show: every matching listing already has a card or a rating.');
+    const title = `📋 <b>Overview: ${items.length} listings</b> shown earlier without a card, not rated yet`;
+    for (const html of formatDigest(title, items)) {
+      await ctx.reply(html, { parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
+      await sleep(1000);
+    }
   });
 
   // Last: it adds a catch-all text handler for filter prompts

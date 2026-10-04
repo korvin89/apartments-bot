@@ -145,7 +145,8 @@ function digestLine(l: StoredListing): string {
     l.isNewBuild ? '🏗' : null,
     place ? esc(place) : null,
   ];
-  return joinParts(parts);
+  // Telegram makes the command tappable: it asks the bot for the listing's card
+  return `${joinParts(parts)} /c${l.id}`;
 }
 
 /**
@@ -173,7 +174,7 @@ export function formatDigest(title: string, listings: StoredListing[]): string[]
       return chunks.map((c, i) => `<b>${esc(name)}</b> (${i === 0 ? items.length : 'cont.'})\n<blockquote expandable>${c.join('\n')}</blockquote>`);
     });
 
-  const header = `${title}\n<i>Tap a block to expand it. New listings will keep coming as separate cards.</i>`;
+  const header = `${title}\n<i>Tap a block to expand it, and <code>/c…</code> next to a listing for its card with Like / Dislike. New listings will keep coming as separate cards.</i>`;
   const messages: string[] = [header];
   for (const section of sections) {
     const cur = messages[messages.length - 1];

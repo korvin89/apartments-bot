@@ -104,6 +104,34 @@ describe('bot', () => {
     assert.equal(loadSearchConfig(db).maxPrice, 180_000);
   });
 
+  it('/c<id> posts the card with Like / Dislike and removes the command', async () => {
+    const h = harness(db);
+    const shown = db.insert({ ...baseListing, sourceId: '2', url: 'https://example.com/2' }, 'fp2', new Date().toISOString());
+    db.markShown([shown.id], new Date().toISOString());
+    await h.reply(`/c${shown.id}@test_bot`, 0);
+    const card = h.calls.find((c) => c.method === 'sendMessage');
+    assert.ok(card, 'card sent');
+    assert.match(JSON.stringify(card.payload.reply_markup), new RegExp(`st:${shown.id}:liked`));
+    assert.ok(h.methods().includes('deleteMessage'));
+    assert.equal(db.get(shown.id)!.tgMessageId, h.lastSentId());
+    await h.press(`st:${shown.id}:liked`, h.lastSentId());
+    assert.equal(db.get(shown.id)!.status, 'liked');
+  });
+
+  it('/overview re-sends unrated listings that never got a card', async () => {
+    const h = harness(db);
+    const now = new Date().toISOString();
+    const shown = db.insert({ ...baseListing, sourceId: '2', url: 'https://example.com/2' }, 'fp2', now);
+    const liked = db.insert({ ...baseListing, sourceId: '3', url: 'https://example.com/3' }, 'fp3', now);
+    db.markShown([shown.id, liked.id], now);
+    db.setStatus(liked.id, 'liked');
+    await h.command('/overview');
+    const text = h.calls.filter((c) => c.method === 'sendMessage').map((c) => String(c.payload.text)).join('\n');
+    assert.match(text, new RegExp(`/c${shown.id}\\b`));
+    assert.doesNotMatch(text, new RegExp(`/c${liked.id}\\b`), 'rated listings are left out');
+    assert.doesNotMatch(text, new RegExp(`/c${id}\\b`), 'listings with a card are left out');
+  });
+
   it('/filters: the TA heating button toggles the filter', async () => {
     const h = harness(db);
     await h.command('/filters');

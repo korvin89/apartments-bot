@@ -162,6 +162,7 @@ describe('digest', () => {
     assert.ok(msg.indexOf('102,000') < msg.indexOf('103,000'));
     assert.ok(msg.indexOf('Vračar') < msg.indexOf('Zvezdara'), 'bigger group first');
     assert.match(msg, /Kalenic/);
+    assert.match(msg, /\/c1\b/, 'each line carries the command for its card');
   });
 
   it('splits long digests into messages under the Telegram limit', () => {
