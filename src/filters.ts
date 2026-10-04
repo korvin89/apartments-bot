@@ -36,10 +36,11 @@ export function rejectReason(l: Listing, cfg: SearchConfig): string | null {
 
   const place = l.placeSlug.toLowerCase();
   const allowed = l.type === 'house' ? [...cfg.includePlaces, ...cfg.includePlacesHousesOnly] : cfg.includePlaces;
-  // 'beograd' means the site gave no neighborhood (e.g. a seller hid it): unknown passes
-  const placeKnown = place !== UNKNOWN_PLACE;
-  if (placeKnown && cfg.includePlaces.length > 0 && !allowed.some((p) => place.includes(p.toLowerCase()))) {
-    return 'place not in list';
+  // Exception to "unknown passes": the owners found ads without a location useless, so with a
+  // place list set, 'beograd' (the site gave no neighborhood, e.g. a seller hid it) is rejected.
+  if (cfg.includePlaces.length > 0) {
+    if (place === UNKNOWN_PLACE) return 'place unknown';
+    if (!allowed.some((p) => place.includes(p.toLowerCase()))) return 'place not in list';
   }
   const excluded = cfg.excludePlaces.find((p) => place.includes(p.toLowerCase()));
   if (excluded) return `place ${excluded}`;

@@ -30,7 +30,7 @@ Common rules for all sources:
 - **Typology ids:** apartments 4 (incl. duplex) and 31 (attic apartment), houses 7 (detached) and 13 (row house). Cottages and farms (11) are left out.
 - **Developer projects:** each unit with a price becomes its own listing, id `<projectId>-<unitId>`. Units with "price on request" are skipped.
 - **Heating in search results is coarse:** "Centralizzato" → `district`, "Autonomo" → `central`, "Assente" → `null`. Assente appears on half of all ads, new builds included, so it means "not specified".
-- **Location:** municipality plus a neighborhood group like "Mirijevo - Novo Mirijevo". Each part is tried against the catalog. Some houses hide the location and fall back to `beograd` (`UNKNOWN_PLACE`), which passes the place filters like any unknown value.
+- **Location:** municipality plus a neighborhood group like "Mirijevo - Novo Mirijevo". Each part is tried against the catalog. Some houses hide the location and fall back to `beograd` (`UNKNOWN_PLACE`), which the place list rejects (an exception the owners asked for to "unknown passes").
 - **Detail data:** `enrichFromDetail()` exists but is not called. Ad pages are behind DataDome. `/_next/data/<buildId>/oglasi/<id>.json` works but `buildId` changes with every deploy.
 - **Fill rates (100 listings):** heating 53%, floor 45%, new build 40%, elevator 20%, registered 12%. No previous price, total floors or creation date.
 - **Failure mode:** if they move the endpoint behind DataDome, requests return 403 with a DataDome body. The only fallback would be a real browser.

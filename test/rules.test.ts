@@ -75,8 +75,9 @@ describe('filters', () => {
     assert.equal(reject({ placeSlug: banjica, type: 'apartment' }, cfg), 'place not in list');
   });
 
-  it('lets listings without a known place through the place list', () => {
-    assert.equal(rejectReason({ ...baseListing, placeSlug: 'beograd' }, searchConfig), null);
+  it('rejects listings without a known place when a place list is set', () => {
+    assert.equal(rejectReason({ ...baseListing, placeSlug: 'beograd' }, searchConfig), 'place unknown');
+    assert.equal(reject({ placeSlug: 'beograd' }, { includePlaces: [] }), null);
   });
 
   it('default place list keeps Stari Kosutnjak (Rakovica) out', () => {
