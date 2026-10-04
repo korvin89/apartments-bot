@@ -27,11 +27,11 @@ describe('filters', () => {
   it('lets unknown values through every filter', () => {
     const strict = {
       minM2: 50, maxM2: 100, minRooms: 2, maxPricePerM2: 3000, maxFloorWithoutElevator: 2,
-      excludeBasement: true, excludeGroundFloor: true, excludeAttic: true, excludeLastFloor: true,
+      excludeBasement: true, excludeGroundFloor: true, excludeAttic: true, excludeLastFloor: true, excludeStorageHeating: true,
       requireRegistered: true, requireCreditEligible: true, buildingAge: 'resale' as const,
     };
     const unknown = { m2: null, rooms: null, floor: null, lastFloor: null, attic: null, registered: null,
-      creditEligible: null, elevator: null, isNewBuild: null, advertiser: 'unknown' as const };
+      creditEligible: null, elevator: null, isNewBuild: null, heating: null, advertiser: 'unknown' as const };
     assert.equal(reject(unknown, strict), null);
   });
 
@@ -55,6 +55,14 @@ describe('filters', () => {
     assert.equal(reject({ attic: true, lastFloor: true }, { excludeAttic: true }), 'attic');
     assert.equal(reject({ lastFloor: true }, { excludeAttic: true }), null);
     assert.equal(reject({ attic: true }, { excludeLastFloor: true }), 'top floor');
+  });
+
+  it('rejects storage-heater (TA) apartments but not houses', () => {
+    const cfg = { excludeStorageHeating: true };
+    assert.equal(reject({ heating: 'storageHeater' }, cfg), 'storage heaters (TA)');
+    assert.equal(reject({ heating: 'storageHeater', type: 'house' }, cfg), null);
+    assert.equal(reject({ heating: 'district' }, cfg), null);
+    assert.equal(reject({ heating: 'storageHeater' }, { excludeStorageHeating: false }), null);
   });
 
   it('switches between resale and new builds', () => {

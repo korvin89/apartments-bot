@@ -29,6 +29,7 @@ export function rejectReason(l: Listing, cfg: SearchConfig): string | null {
     if (cfg.excludeGroundFloor && ground) return 'ground floor';
     if (cfg.excludeAttic && l.attic === true) return 'attic';
     if (cfg.excludeLastFloor && (l.lastFloor === true || l.attic === true)) return 'top floor';
+    if (cfg.excludeStorageHeating && l.heating === 'storageHeater') return 'storage heaters (TA)';
     if (cfg.maxFloorWithoutElevator !== null && l.elevator === false && l.floor !== null && l.floor > cfg.maxFloorWithoutElevator) {
       return `floor ${l.floor} without elevator`;
     }

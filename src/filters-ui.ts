@@ -24,7 +24,8 @@ type ToggleField =
   | 'excludeBasement'
   | 'excludeGroundFloor'
   | 'excludeAttic'
-  | 'excludeLastFloor';
+  | 'excludeLastFloor'
+  | 'excludeStorageHeating';
 
 const PLACES_HELP =
   'Reply with "+ banjica, zarkovo" to add, "- lesce" to remove, a full comma-separated list to replace, or "none" to clear. ' +
@@ -102,6 +103,7 @@ export function filtersText(cfg: SearchConfig): string {
     `🏢 Floor (apartments): ${floors.length ? floors.join(', ') : 'any'}`,
     `✅ Hide "not registered": ${onOff(cfg.requireRegistered)}`,
     `🏦 Mortgage-eligible only: ${onOff(cfg.requireCreditEligible)}`,
+    `🔥 Hide TA heating (apartments): ${onOff(cfg.excludeStorageHeating)}`,
     `📍 Only places: ${placesSummary(cfg.includePlaces, 'everywhere')}`,
     cfg.includePlaces.length ? `🏡 Extra places for houses: ${placesSummary(cfg.includePlacesHousesOnly, 'none')}` : null,
     `🚫 Excluded places: ${placesSummary(cfg.excludePlaces, 'none')}`,
@@ -138,6 +140,8 @@ export function filtersKeyboard(cfg: SearchConfig): InlineKeyboard {
     .row()
     .text(`✅ Hide not registered ${check(cfg.requireRegistered)}`, 'f:tg:requireRegistered')
     .text(`🏦 Mortgage ${check(cfg.requireCreditEligible)}`, 'f:tg:requireCreditEligible')
+    .row()
+    .text(`🔥 No TA heating ${check(cfg.excludeStorageHeating)}`, 'f:tg:excludeStorageHeating')
     .row()
     .text('📍 Only places', 'f:in:includePlaces')
     .text('🏡 Houses extra', 'f:in:includePlacesHousesOnly')
@@ -206,7 +210,7 @@ export function registerFilters(bot: Bot, db: ListingsDb): void {
     await ctx.answerCallbackQuery();
   });
 
-  bot.callbackQuery(/^f:tg:(requireRegistered|requireCreditEligible|excludeBasement|excludeGroundFloor|excludeAttic|excludeLastFloor)$/, async (ctx) => {
+  bot.callbackQuery(/^f:tg:(requireRegistered|requireCreditEligible|excludeBasement|excludeGroundFloor|excludeAttic|excludeLastFloor|excludeStorageHeating)$/, async (ctx) => {
     const key = ctx.match[1] as ToggleField;
     const next = updateFilters(db, { [key]: !loadSearchConfig(db)[key] });
     await ctx.editMessageText(filtersText(next), { parse_mode: 'HTML', reply_markup: filtersKeyboard(next) });

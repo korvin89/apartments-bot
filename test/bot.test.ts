@@ -104,6 +104,14 @@ describe('bot', () => {
     assert.equal(loadSearchConfig(db).maxPrice, 180_000);
   });
 
+  it('/filters: the TA heating button toggles the filter', async () => {
+    const h = harness(db);
+    await h.command('/filters');
+    assert.equal(loadSearchConfig(db).excludeStorageHeating, true);
+    await h.press('f:tg:excludeStorageHeating', h.lastSentId());
+    assert.equal(loadSearchConfig(db).excludeStorageHeating, false);
+  });
+
   it('ignores ordinary chat messages', async () => {
     const h = harness(db);
     const before = JSON.stringify(loadSearchConfig(db));

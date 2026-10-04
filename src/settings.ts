@@ -18,6 +18,7 @@ export interface EditableFilters {
   maxFloorWithoutElevator: number | null;
   excludeGroundFloor: boolean;
   excludeLastFloor: boolean;
+  excludeStorageHeating: boolean;
   requireCreditEligible: boolean;
   requireRegistered: boolean;
   excludePlaces: string[];

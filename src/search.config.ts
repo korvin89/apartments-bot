@@ -35,6 +35,8 @@ export const searchConfig = {
   excludeAttic: false,
   /** Skip any top floor, attic included. */
   excludeLastFloor: false,
+  /** Skip apartments heated by storage heaters ("TA peći"). Houses are not affected. */
+  excludeStorageHeating: true,
   /** Only listings marked as mortgage-eligible. */
   requireCreditEligible: false,
   /**
