@@ -8,6 +8,8 @@ export const env = {
   notifyOnFirstRun: process.env.NOTIFY_ON_FIRST_RUN === 'true',
   /** curl-impersonate binary for halooglasi.com; the source is skipped if it is missing. */
   curlImpersonate: process.env.CURL_IMPERSONATE ?? './bin/curl-impersonate',
+  /** Proxy for halooglasi.com requests (e.g. socks5h://127.0.0.1:1080); empty = direct. */
+  halooglasiProxy: process.env.HALOOGLASI_PROXY || null,
   /** Consecutive failed polls before the bot posts a warning to the chat. */
   healthAlertAfter: Number(process.env.HEALTH_ALERT_AFTER ?? 3),
 };

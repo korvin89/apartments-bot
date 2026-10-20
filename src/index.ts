@@ -18,7 +18,7 @@ async function main(): Promise<void> {
     `Starting: poll every ${env.pollIntervalMinutes} min, sources ${Object.entries(cfg.sources)
       .filter(([, on]) => on)
       .map(([k]) => k)
-      .join(', ')}, max price ${cfg.maxPrice}, db ${env.dbPath}`,
+      .join(', ')}${env.halooglasiProxy ? ' (halooglasi through a proxy)' : ''}, max price ${cfg.maxPrice}, db ${env.dbPath}`,
   );
 
   if (!env.botToken) {

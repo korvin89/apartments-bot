@@ -127,6 +127,12 @@ export interface CurlImpersonateOptions {
   binary: string;
   /** Browser profile; null when `binary` is a wrapper script like curl_chrome146. Default 'chrome146'. */
   impersonate?: string | null;
+  /**
+   * Proxy for curl's --proxy, e.g. socks5h://127.0.0.1:1080. Cloudflare challenges
+   * datacenter IPs even with the right fingerprint; the proxy only tunnels the
+   * connection, so the TLS handshake (and its fingerprint) is still curl-impersonate's.
+   */
+  proxy?: string | null;
   timeoutMs?: number;
 }
 
@@ -140,18 +146,22 @@ const STATUS_MARK = '\n__HALO_STATUS__:';
  */
 export function createCurlImpersonateFetch(o: CurlImpersonateOptions): typeof fetch {
   const impersonate = o.impersonate === undefined ? 'chrome146' : o.impersonate;
+  // curl-impersonate reads CURL_IMPERSONATE as a profile name, while our .env uses the
+  // same variable for the binary path: passed through, it fails every call with exit 27.
+  const { CURL_IMPERSONATE: _binaryPath, ...childEnv } = process.env;
   const impl = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     const headers = new Headers(init?.headers);
     const args = ['-s', '-L', '--max-redirs', '5', '--compressed'];
     if (impersonate) args.push('--impersonate', impersonate);
+    if (o.proxy) args.push('--proxy', o.proxy);
     for (const name of ['accept-language', 'referer']) {
       const v = headers.get(name);
       if (v) args.push('-H', `${name}: ${v}`);
     }
     args.push('-w', `${STATUS_MARK}%{http_code}`, url);
     const out = await new Promise<string>((resolve, reject) => {
-      execFile(o.binary, args, { maxBuffer: 32 * 1024 * 1024, timeout: o.timeoutMs ?? 60_000 }, (err, stdout) =>
+      execFile(o.binary, args, { env: childEnv, maxBuffer: 32 * 1024 * 1024, timeout: o.timeoutMs ?? 60_000 }, (err, stdout) =>
         err ? reject(new Error(`curl-impersonate failed for ${url}: ${err.message}`)) : resolve(stdout),
       );
     });

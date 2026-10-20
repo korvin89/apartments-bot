@@ -76,7 +76,7 @@ const SOURCES: Record<SourceKey, (cfg: SearchConfig, ctx: SourceContext) => Sour
             maxPrice: cfg.maxPrice,
             pages: cfg.pagesPerPoll,
             types: cfg.types,
-            fetchImpl: createCurlImpersonateFetch({ binary: env.curlImpersonate }),
+            fetchImpl: createCurlImpersonateFetch({ binary: env.curlImpersonate, proxy: env.halooglasiProxy }),
             // Search cards lack heating, registration etc. Open the ad page only for
             // listings we will actually notify about: new, past the card-level filters,
             // and not during its first poll (those listings go into an overview).

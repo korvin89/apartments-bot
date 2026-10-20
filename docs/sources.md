@@ -37,8 +37,10 @@ Common rules for all sources:
 
 ## halooglasi.com
 
-- **Access:** behind **Cloudflare**, which decides on the TLS fingerprint alone. Node's fetch, plain curl and headless-shell Chromium all get 403. No `cf_clearance` cookie is issued, so there is nothing to reuse.
+- **Access:** behind **Cloudflare**, which decides on the TLS fingerprint and the IP. From a home IP, Node's fetch, plain curl and headless-shell Chromium all get 403. No `cf_clearance` cookie is issued, so there is nothing to reuse.
 - **What passes:** [curl-impersonate](https://github.com/lexiforest/curl-impersonate) with `--impersonate chrome146`. Install with `scripts/install-curl-impersonate.sh` (pinned version and checksums). Path in `CURL_IMPERSONATE`, default `./bin/curl-impersonate`. Without the binary the source is skipped with a log line.
+- **Datacenter IPs get a challenge** even with the right fingerprint: 403, `cf-mitigated: challenge`, "Just a moment..." (DigitalOcean FRA1 and AMS3, October 2026). A VLESS VPN exit at a small German hoster passes. `HALOOGLASI_PROXY` sends only halooglasi through a proxy (curl `--proxy`); the proxy only tunnels the connection, so the fingerprint is kept. Setup: README, "halooglasi through a proxy".
+- **`CURL_IMPERSONATE` trap:** curl-impersonate itself reads this variable as a profile name. With the bot's binary path in it, every call exits with 27 and prints nothing, so `createCurlImpersonateFetch()` removes it from the child's environment.
 - **Fallback if Cloudflare starts rejecting the profile:** upgrade curl-impersonate and use a newer profile, or a full (not headless-shell) Playwright Chromium.
 - **Search:** `/nekretnine/prodaja-stanova/beograd` and `/nekretnine/prodaja-kuca/beograd` with `?cena_d_to=<maxPrice>&cena_d_unit=4&page=<n>` (unit 4 = EUR). Default order is newest first. Data is in `QuidditaEnvironment.serverListData`, 20 ads per page, each with a `ListHTML` card.
 - **Ad page:** `QuidditaEnvironment.CurrentClassified.OtherFields`. Cards lack heating, registration, elevator, building type and agency. These come from the ad page (`parseAdPage()`, `mergeDetails()`), at most 20 per poll.

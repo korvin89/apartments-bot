@@ -1,8 +1,11 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fixture, stubFetch } from './helpers.ts';
 import { fetchFourZida, normalizeFloor } from '../src/sources/fourzida.ts';
-import { mapHeating, parseAdPage, parseFloorCode, parseSearchPage } from '../src/sources/halooglasi.ts';
+import { createCurlImpersonateFetch, mapHeating, parseAdPage, parseFloorCode, parseSearchPage } from '../src/sources/halooglasi.ts';
 import { parseFloor, parseSearchResults, registeredFromText } from '../src/sources/nekretnine.ts';
 import { fetchCityExpert } from '../src/sources/cityexpert.ts';
 import type { Listing } from '../src/types.ts';
@@ -86,6 +89,28 @@ describe('halooglasi', () => {
     assert.equal(mapHeating('CG'), 'district');
     assert.equal(mapHeating('EG'), 'central');
     assert.equal(mapHeating('TA'), 'storageHeater');
+  });
+
+  it('runs curl-impersonate through the proxy, without our CURL_IMPERSONATE path', async () => {
+    // A stand-in binary that prints its arguments and what it sees in CURL_IMPERSONATE.
+    const dir = mkdtempSync(join(tmpdir(), 'fake-curl-'));
+    const binary = join(dir, 'curl-impersonate');
+    writeFileSync(binary, '#!/bin/sh\nprintf "%s\\n" "$@"\necho "env=${CURL_IMPERSONATE-unset}"\nprintf "\\n__HALO_STATUS__:200"\n', { mode: 0o755 });
+    const saved = process.env.CURL_IMPERSONATE;
+    process.env.CURL_IMPERSONATE = binary;
+    try {
+      const doFetch = createCurlImpersonateFetch({ binary, proxy: 'socks5h://127.0.0.1:1080' });
+      const res = await doFetch('https://www.halooglasi.com/x');
+      assert.equal(res.status, 200);
+      const lines = (await res.text()).split('\n');
+      assert.equal(lines[lines.indexOf('--proxy') + 1], 'socks5h://127.0.0.1:1080');
+      // Regression: curl-impersonate took the inherited path for a profile name and exited with 27.
+      assert.ok(lines.includes('env=unset'));
+    } finally {
+      if (saved === undefined) delete process.env.CURL_IMPERSONATE;
+      else process.env.CURL_IMPERSONATE = saved;
+      rmSync(dir, { recursive: true });
+    }
   });
 });
 

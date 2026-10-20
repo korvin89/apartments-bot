@@ -1,0 +1,20 @@
+# systemd unit for the Xray proxy halooglasi.com requests go through (README, "halooglasi through a proxy").
+# Install:
+#   sudo cp deploy/apartments-bot-proxy.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now apartments-bot-proxy
+# Adjust User and the paths if the checkout lives elsewhere.
+[Unit]
+Description=Xray SOCKS proxy for halooglasi.com (apartments bot)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=alaev89
+WorkingDirectory=/home/alaev89/apartments-bot
+ExecStart=/home/alaev89/apartments-bot/bin/xray run -c data/xray.json
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

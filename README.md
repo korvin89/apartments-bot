@@ -45,6 +45,7 @@ The first run doesn't post a card per listing. It posts the `/help` text, then o
 | `NOTIFY_ON_FIRST_RUN` | `false` | Post a card per listing on the very first run instead of one overview. |
 | `HEALTH_ALERT_AFTER` | `3` | Failed polls in a row before a warning. |
 | `CURL_IMPERSONATE` | `./bin/curl-impersonate` | Binary for halooglasi.com. If missing, that source is skipped. |
+| `HALOOGLASI_PROXY` | | Proxy for halooglasi.com requests, e.g. `socks5h://127.0.0.1:1080`. Empty: direct. See [halooglasi through a proxy](#halooglasi-through-a-proxy). |
 | `LOG_DIR` | `./logs` | Daily log files `bot-YYYY-MM-DD.log`. |
 | `LOG_RETENTION_DAYS` | `14` | Older log files are deleted. |
 
@@ -76,14 +77,14 @@ src/
   health.ts         failure tracking and alerts
   logger.ts         console + daily log files
 docs/sources.md     per-site scraping notes
-deploy/             systemd unit
-scripts/            curl-impersonate installer
+deploy/             systemd units: the bot, the halooglasi proxy
+scripts/            curl-impersonate and Xray installers, VLESS link → Xray config
 test/               tests and fixtures
 ```
 
 ## Deploying to Ubuntu
 
-Target: Ubuntu 24.04, 1 vCPU, 1 GB RAM (not yet run there end to end). The bot uses about 160 MB of memory, a second of CPU per poll and about 8 GB of traffic a month.
+Target: Ubuntu 24.04, 1 vCPU, 1 GB RAM (runs on a 1 GB DigitalOcean droplet in Frankfurt). The bot uses about 160 MB of memory, a second of CPU per poll and about 8 GB of traffic a month.
 
 1. **Node 22 from NodeSource** (systemd needs `node` in `/usr/bin`, which nvm doesn't provide):
    ```bash
@@ -106,13 +107,39 @@ Target: Ubuntu 24.04, 1 vCPU, 1 GB RAM (not yet run there end to end). The bot u
    ```bash
    pnpm preview
    ```
-   Every source should report listings. halooglasi (Cloudflare) and nekretnine (DataDome) can be stricter with datacenter IPs; if one is blocked, the bot keeps working without it and warns in the chat.
+   Every source should report listings. halooglasi (Cloudflare) blocks datacenter IPs: from DigitalOcean it gets 403, which [a proxy](#halooglasi-through-a-proxy) gets around. nekretnine (DataDome) passes from DigitalOcean. If a source is blocked, the bot keeps working without it and warns in the chat.
 6. **Run as a service.** Check `User` and `WorkingDirectory` in `deploy/apartments-bot.service`, then:
    ```bash
    sudo cp deploy/apartments-bot.service /etc/systemd/system/
    sudo systemctl daemon-reload
    sudo systemctl enable --now apartments-bot
    ```
+
+### halooglasi through a proxy
+
+Cloudflare answers halooglasi requests from datacenter IPs with a challenge (403 "Just a moment...", seen from DigitalOcean FRA1 and AMS3), even with curl-impersonate. A VLESS VPN whose exit isn't flagged gets through. The bot sends only halooglasi requests through a local Xray SOCKS proxy; the other sites and Telegram go direct.
+
+1. Put the VPN's `vless://` link in a file outside the repo, e.g. `~/vpn-key.txt`. It is a credential.
+2. Install Xray and write its config to `data/xray.json` (mode 600):
+   ```bash
+   scripts/install-xray.sh
+   node scripts/xray-config.mjs ~/vpn-key.txt
+   ```
+3. Run it as a service:
+   ```bash
+   sudo cp deploy/apartments-bot-proxy.service /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now apartments-bot-proxy
+   ```
+4. Check that halooglasi answers 200 through it, then point the bot at it:
+   ```bash
+   bin/curl-impersonate --impersonate chrome146 -x socks5h://127.0.0.1:1080 -s -o /dev/null -w '%{http_code}\n' \
+     https://www.halooglasi.com/nekretnine/prodaja-stanova/beograd
+   echo 'HALOOGLASI_PROXY=socks5h://127.0.0.1:1080' >> .env
+   sudo systemctl restart apartments-bot
+   ```
+
+If the VPN stops working (subscription expired, key replaced), halooglasi fails and the bot warns in the chat. For a new link, rerun `xray-config.mjs` and `sudo systemctl restart apartments-bot-proxy`. If the check in step 4 gives 403, the VPN's exit is flagged too: try another location from the subscription.
 
 **Only one copy of the bot may run per token.** Telegram delivers updates to one process; a second one gets "409 Conflict". Stop the local bot before starting the server one.
 
@@ -141,6 +168,7 @@ cd ~/apartments-bot && git pull && pnpm install --frozen-lockfile && sudo system
 | "Stopped receiving Telegram updates" in the log | Another copy runs with the same token (409) or the token was revoked (401). The bot posts a warning and exits; systemd restarts it. |
 | `409 Conflict` in the log | Another copy of the bot is running with the same token. |
 | "halooglasi skipped: curl-impersonate not found" | Run `scripts/install-curl-impersonate.sh`. |
-| halooglasi or nekretnine fail with 403 | Bot protection blocked the server IP. See [docs/sources.md](docs/sources.md). |
+| halooglasi or nekretnine fail with 403 | Bot protection blocked the server IP. For halooglasi see [halooglasi through a proxy](#halooglasi-through-a-proxy), otherwise [docs/sources.md](docs/sources.md). |
+| halooglasi: "curl-impersonate failed" with `HALOOGLASI_PROXY` set | The proxy is down (`systemctl status apartments-bot-proxy`) or the VPN no longer accepts the key. |
 | A source "returned 0 listings" | The site changed its layout; the parser needs an update. |
 | Dislike doesn't delete old cards | The bot needs admin rights with "Delete messages" for cards older than 48 hours. |
