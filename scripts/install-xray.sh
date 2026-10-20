@@ -39,5 +39,6 @@ mkdir -p bin/xray-licenses
 install -m 755 "$TMP/xray" bin/xray
 cp "$TMP/LICENSE" bin/xray-licenses/
 
-bin/xray version | head -1
+# sed, not head: head closes the pipe early and pipefail turns xray's SIGPIPE into a failure
+bin/xray version | sed -n 1p
 echo "Installed to bin/xray"
